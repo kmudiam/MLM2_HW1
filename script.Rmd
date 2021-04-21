@@ -1,0 +1,119 @@
+---
+title: "HW 1"
+author: "Kavya Mudiam"
+date: "4/9/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+here::here()
+library(tidyverse)
+data <- read_csv(here::here("data", "longitudinal-sim.csv"))
+library(lme4)
+```
+
+#PART 1
+*I'm not sure if I'm supposed to only have timepoints 0-2 or 0-8*
+```{r}
+d <- data %>% 
+  pivot_longer(cols = g3_fall:g5_spring,
+               names_to = "term",
+               values_to = "score") %>% 
+  select(-c(distid, scid)) %>% 
+  mutate(timepoint = term,
+         timepoint=replace(timepoint, timepoint=="g3_fall", 0),
+         timepoint=replace(timepoint, timepoint=="g3_winter", 1),
+         timepoint=replace(timepoint, timepoint=="g3_spring", 2),
+         timepoint=replace(timepoint, timepoint=="g4_fall", 3),
+         timepoint=replace(timepoint, timepoint=="g4_winter", 4),
+         timepoint=replace(timepoint, timepoint=="g4_spring", 5),
+         timepoint=replace(timepoint, timepoint=="g5_fall", 6),
+         timepoint=replace(timepoint, timepoint=="g5_winter", 7),
+         timepoint=replace(timepoint, timepoint=="g5_spring", 8),
+         timepoint = as.numeric(timepoint),
+         grade = substr(term, start = 1, stop = 2),
+         term = as.factor(term),
+         #grade = sub("_...."," ", term),
+         grade = as.factor(grade),
+         sid = as.factor(sid))
+```
+
+*conditional = predictor with something other than TIME (i.e., grade)*
+#Question 2, Part A
+##Unconditional growth model with random intercepts and parallel slopes
+```{r}
+model1 <- lmer(score ~ 1 + timepoint + (1|sid), data = d)
+summary(model1)
+```
+
+##Conditional growth model with random intercepts, parallel slopes, and grade-level fixed effects
+```{r}
+model2 <- lmer(score ~ 1 + timepoint + grade + (1|sid), data = d)
+summary(model2)
+```
+##Unconditional growth model with random intercepts and random slopes
+```{r}
+model3 <- lmer(score ~ 1 + timepoint + (1 + timepoint|sid), data= d) #Error
+summary(model3)
+```
+
+##Conditional growth model with random intercepts, random slopes, and grade-level fixed effects
+```{r}
+model4 <- lmer(score ~ 1 + timepoint + grade + (1 + timepoint|sid), data = d)
+summary(model4)
+```
+
+#PART B *Compare the performance of the four models you fit in the previous section. Which model displays the best fit to the data? Make a determination and provide a brief write up, using evidence to justify your selection.*
+Given that the AIC and BIC are lowest for Model 4, it appears to be the best fit.
+
+```{r}
+anova(model1, model2, model3, model4)
+```
+
+
+#PART C - interpretation
+Provide a brief writeup interpreting the model you selected from above. Be sure to interpret both the fixed effects and random effects. I’m looking for a “plain English” description. It does not necessarily need to be APA style, but plain English and APA are also not mutually exclusive, so you could. Please make sure to also include confidence intervals in your interpretation.
+
+
+#plotting - code from class that may be relevant
+Plot the predicted values for student ID’s 1-1-1, 1-1-2, and 1-1-3, relative to their observed data points. Use facet wrapping to place them all in the same plot. The end result should look similar to the below, which shows this relation for student IDS 1-1-4, 1-1-5, and 1-1-6. Note that my plot has some styling added to it which you can feel free to ignore (I just can’t help myself).
+```{r echo = FALSE}
+tmp <- d %>% 
+ # drop_na(timepoint, sid, term, score, grade) %>% 
+  filter(sid %in% c("1-1-1", "1-1-2", "1-1-3")) %>% 
+  select(-term) 
+
+tmp <-as.data.frame(tmp)
+
+tmp <- tmp %>% 
+  mutate(pred = predict(model4))
+
+
+         pred_slope = predict(m_slopes)) %>% 
+  pivot_longer(starts_with("pred"),
+               names_to = "model",
+               values_to = "prediction",
+               names_prefix = "pred_")
+
+full_data <- tmp %>% 
+  count(sid) %>% 
+  filter(n == max(n))
+set.seed(42)
+samp <- sample(unique(full_data$id), 20)
+tmp %>% 
+  filter(id %in% samp) %>% 
+  ggplot(aes(timepoint, pred)) +
+  geom_line(aes(group = id),
+            alpha = 0.8,
+            size = 1.3)
+
+tmp %>% 
+  filter(id %in% samp[1:9]) %>% 
+  ggplot(aes(timepoint, pred)) +
+  geom_point(aes(y = read)) +
+  geom_line(color = "cornflowerblue",
+            size = 1.3) +
+  facet_wrap(~id)
+```
+
+---
