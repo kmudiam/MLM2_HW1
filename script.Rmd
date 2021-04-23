@@ -70,50 +70,49 @@ Given that the AIC and BIC are lowest for Model 4, it appears to be the best fit
 anova(model1, model2, model3, model4)
 ```
 
-
 #PART C - interpretation
 Provide a brief writeup interpreting the model you selected from above. Be sure to interpret both the fixed effects and random effects. I’m looking for a “plain English” description. It does not necessarily need to be APA style, but plain English and APA are also not mutually exclusive, so you could. Please make sure to also include confidence intervals in your interpretation.
 
+```{r}
+confint(model4)
+```
+Computing profile confidence intervals ...   
+                  2.5 %      97.5 %
+.sig01        9.9867817  10.1886480
+.sig02        0.3162605   0.3457282
+.sig03        1.1446953   1.1720912
+.sigma        4.6975075   4.7304296
+(Intercept) 188.6523973 188.9300296
+timepoint     6.1476895   6.2063883
+gradeg4      -8.2586821  -8.0773529
+gradeg5     -16.8509185 -16.5328461
+`````````
+#Interpretation
+*The intercept displays that on average students scored 188.79 points on the assessment in the fall of Grade 3 ,95% CI: [188.65, 188.93]. The SD of random effect suggests that the scores varied by 10.09 points per student, 95% CI: [9.99, 10.19]). Between each timepoint, students improved 6.18 points on average, 95% CI: [6.15, 6.21], and the SD of 1.16 points, 95% CI: [1.14, 1.17], suggests that this was the variance between students over time. During Grade 4, students lost 8.26 points on average, 95%  CI: -8.26, -8.08, and 16.69 points during Grade 5,95%  CI: [-16.85, -16.53].
 
-#plotting - code from class that may be relevant
+
+
+```````````````````````
+
 Plot the predicted values for student ID’s 1-1-1, 1-1-2, and 1-1-3, relative to their observed data points. Use facet wrapping to place them all in the same plot. The end result should look similar to the below, which shows this relation for student IDS 1-1-4, 1-1-5, and 1-1-6. Note that my plot has some styling added to it which you can feel free to ignore (I just can’t help myself).
 ```{r echo = FALSE}
 tmp <- d %>% 
- # drop_na(timepoint, sid, term, score, grade) %>% 
+  drop_na(timepoint, sid, term, score, grade) %>% 
   filter(sid %in% c("1-1-1", "1-1-2", "1-1-3")) %>% 
-  select(-term) 
+  select(-term) #%>% 
+#  mutate(timepoint = as.factor(timepoint))
 
 tmp <-as.data.frame(tmp)
-
 tmp <- tmp %>% 
-  mutate(pred = predict(model4))
+  mutate(pred = predict(model4, newdata = tmp))
 
-
-         pred_slope = predict(m_slopes)) %>% 
-  pivot_longer(starts_with("pred"),
-               names_to = "model",
-               values_to = "prediction",
-               names_prefix = "pred_")
-
-full_data <- tmp %>% 
-  count(sid) %>% 
-  filter(n == max(n))
-set.seed(42)
-samp <- sample(unique(full_data$id), 20)
 tmp %>% 
-  filter(id %in% samp) %>% 
+#  filter(id %in% samp) %>% 
   ggplot(aes(timepoint, pred)) +
-  geom_line(aes(group = id),
+  geom_point(aes(y = score)) +
+  geom_line(aes(group = sid),
             alpha = 0.8,
-            size = 1.3)
-
-tmp %>% 
-  filter(id %in% samp[1:9]) %>% 
-  ggplot(aes(timepoint, pred)) +
-  geom_point(aes(y = read)) +
-  geom_line(color = "cornflowerblue",
             size = 1.3) +
-  facet_wrap(~id)
+    geom_line(color = "cornflowerblue") +
+  facet_wrap(~sid)
 ```
-
----
